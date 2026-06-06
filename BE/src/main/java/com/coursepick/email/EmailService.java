@@ -1,5 +1,6 @@
 package com.coursepick.email;
 
+import com.coursepick.user.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.mail.SimpleMailMessage;
@@ -15,9 +16,15 @@ public class EmailService {
 
     private final JavaMailSender mailSender;
     private final StringRedisTemplate redisTemplate;
+    private final UserRepository userRepository;
 
     // 인증번호 발송
     public void sendCode(String email) {
+
+        if (userRepository.existsByEmail(email)) {
+            throw new RuntimeException("이미 가입된 이메일입니다.");
+        }
+
         String code = createCode();
 
         redisTemplate.opsForValue()
@@ -50,6 +57,13 @@ public class EmailService {
         redisTemplate.delete("email:code:" + email);
 
         return true;
+    }
+
+    public boolean isVerified(String email) {
+        String verified = redisTemplate.opsForValue()
+                .get("email:verified:" + email);
+
+        return "true".equals(verified);
     }
 
     // 6자리 인증번호 생성
