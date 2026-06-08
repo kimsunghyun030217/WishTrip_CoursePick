@@ -1,6 +1,7 @@
 package com.coursepick.user;
 
 import com.coursepick.user.dto.LoginRequest;
+import com.coursepick.user.dto.ResetPasswordRequest;
 import com.coursepick.user.dto.SignupRequest; //회원가입 요청 DTO 가져오기
 import lombok.RequiredArgsConstructor; //final 필드 생성자 자동 생성
 import org.springframework.http.ResponseEntity;
@@ -25,4 +26,12 @@ public class UserController {
         return ResponseEntity.ok("로그인 성공");
     }
 
+    @PatchMapping("/password/reset")
+    public ResponseEntity<String> resetPassword(
+            @RequestBody ResetPasswordRequest request) {
+
+        userService.resetPassword(request);
+
+        return ResponseEntity.ok("비밀번호 변경 성공");
+    }
 }

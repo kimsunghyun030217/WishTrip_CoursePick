@@ -28,7 +28,7 @@ public class EmailService {
         String code = createCode();
 
         redisTemplate.opsForValue()
-                .set("email:code:" + email, code, 5, TimeUnit.MINUTES);
+                .set("email:signup:code:" + email, code, 5, TimeUnit.MINUTES);
 
         SimpleMailMessage message = new SimpleMailMessage();
         message.setTo(email);
@@ -41,7 +41,7 @@ public class EmailService {
     // 인증번호 검증
     public boolean verifyCode(String email, String code) {
         String savedCode = redisTemplate.opsForValue()
-                .get("email:code:" + email);
+                .get("email:signup:code:" + email);
 
         if (savedCode == null) {
             return false;
@@ -52,16 +52,23 @@ public class EmailService {
         }
 
         redisTemplate.opsForValue()
-                .set("email:verified:" + email, "true", 5, TimeUnit.MINUTES);
+                .set("email:signup:verified:" + email, "true", 5, TimeUnit.MINUTES);
 
-        redisTemplate.delete("email:code:" + email);
+        redisTemplate.delete("email:signup:code:" + email);
 
         return true;
     }
 
-    public boolean isVerified(String email) {
+    public boolean isSignupVerified(String email) {
         String verified = redisTemplate.opsForValue()
-                .get("email:verified:" + email);
+                .get("email:signup:verified:" + email);
+
+        return "true".equals(verified);
+    }
+
+    public boolean isPasswordResetVerified(String email) {
+        String verified = redisTemplate.opsForValue()
+                .get("email:password-reset:verified:" + email);
 
         return "true".equals(verified);
     }
@@ -71,5 +78,47 @@ public class EmailService {
         Random random = new Random();
         int code = 100000 + random.nextInt(900000);
         return String.valueOf(code);
+    }
+
+    //비밀번호 재설정
+    public void sendPasswordResetCode(String email) {
+
+        if (!userRepository.existsByEmail(email)) {
+            throw new RuntimeException("가입되지 않은 이메일입니다.");
+        }
+
+        String code = createCode();
+
+        redisTemplate.opsForValue()
+            .set("email:password-reset:code:" + email, code, 5, TimeUnit.MINUTES);
+
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setTo(email);
+        message.setSubject("[CoursePick] 비밀번호 재설정 인증번호");
+        message.setText("인증번호는 " + code + " 입니다.\n5분 이내에 입력해주세요.");
+
+        mailSender.send(message);
+    }
+
+    public boolean verifyPasswordResetCode(String email, String code) {
+
+        String savedCode = redisTemplate.opsForValue()
+                .get("email:password-reset:code:" + email);
+
+        if (savedCode == null) {
+            return false;
+        }
+
+        if (!savedCode.equals(code)) {
+            return false;
+        }
+
+        redisTemplate.opsForValue()
+                .set("email:password-reset:verified:" + email,
+                        "true", 5, TimeUnit.MINUTES);
+
+        redisTemplate.delete("email:password-reset:code:" + email);
+
+        return true;
     }
 }

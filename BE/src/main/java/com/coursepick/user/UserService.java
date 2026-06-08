@@ -3,6 +3,7 @@ package com.coursepick.user;
 import com.coursepick.email.EmailService;
 import com.coursepick.user.dto.SignupRequest;
 import com.coursepick.user.dto.LoginRequest;
+import com.coursepick.user.dto.ResetPasswordRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -17,7 +18,7 @@ public class UserService {
 
     public void signup(SignupRequest request) {
 
-        if (!emailService.isVerified(request.getEmail())) {
+        if (!emailService.isSignupVerified(request.getEmail())) {
             throw new RuntimeException("이메일 인증이 필요합니다.");
         }
 
@@ -48,4 +49,21 @@ public class UserService {
             throw new RuntimeException("비밀번호가 일치하지 않습니다.");
         }
     }
+
+    public void resetPassword(ResetPasswordRequest request) {
+
+        if (!emailService.isPasswordResetVerified(request.getEmail())) {
+            throw new RuntimeException("비밀번호 재설정 인증이 필요합니다.");
+        }
+
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new RuntimeException("존재하지 않는 이메일입니다."));
+
+        String encodedPassword =
+                passwordEncoder.encode(request.getNewPassword());
+
+        user.changePassword(encodedPassword);
+        userRepository.save(user);
+    }
+
 }

@@ -31,4 +31,8 @@ public class User {
     private LocalDate birthDate;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+
+    public void changePassword(String password) {
+        this.password = password;
+    }
 }

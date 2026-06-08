@@ -32,4 +32,30 @@ public class EmailController {
 
         return ResponseEntity.ok("이메일 인증 성공");
     }
+
+    @PostMapping("/password-reset-code")
+    public ResponseEntity<String> sendPasswordResetCode(
+            @RequestBody EmailCodeRequest request) {
+
+        emailService.sendPasswordResetCode(request.getEmail());
+
+        return ResponseEntity.ok("비밀번호 재설정 인증번호 발송 완료");
+    }
+
+    @PostMapping("/password-reset-verify")
+    public ResponseEntity<String> passwordResetVerify(
+            @RequestBody EmailVerifyRequest request) {
+
+        boolean result = emailService.verifyPasswordResetCode(
+                request.getEmail(),
+                request.getCode()
+        );
+
+        if (!result) {
+            return ResponseEntity.badRequest()
+                    .body("인증번호가 올바르지 않습니다.");
+        }
+
+        return ResponseEntity.ok("비밀번호 재설정 인증 성공");
+    }
 }

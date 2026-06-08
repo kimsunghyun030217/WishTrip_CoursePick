@@ -26,7 +26,8 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/api/emails/**",
                                 "/api/users/signup",
-                                "/api/users/login"
+                                "/api/users/login",
+                                "/api/users/password/reset"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )
