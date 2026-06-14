@@ -9,8 +9,14 @@ import {
   StatusBar,
   Image,
   ScrollView,
+  Alert,
 } from "react-native";
 import { router } from "expo-router";
+import {
+  sendSignupCode,
+  verifySignupCode,
+  signup,
+} from "../src/api/authApi";
 
 export default function Signup() {
   const [email, setEmail] = useState("");
@@ -18,6 +24,72 @@ export default function Signup() {
   const [nickname, setNickname] = useState("");
   const [password, setPassword] = useState("");
   const [passwordCheck, setPasswordCheck] = useState("");
+
+  const handleSendCode = async () => {
+    if (!email) {
+      Alert.alert("알림", "이메일을 입력해주세요.");
+      return;
+    }
+
+    try {
+      const result = await sendSignupCode(email);
+      Alert.alert("성공", result || "인증번호가 발송되었습니다.");
+    } catch (error: any) {
+      Alert.alert(
+        "발송 실패",
+        error.response?.data || "인증번호 발송에 실패했습니다."
+      );
+    }
+  };
+
+  const handleVerifyCode = async () => {
+    if (!email || !code) {
+      Alert.alert("알림", "이메일과 인증번호를 입력해주세요.");
+      return;
+    }
+
+    try {
+      const result = await verifySignupCode(email, code);
+      Alert.alert("성공", result || "인증번호가 확인되었습니다.");
+    } catch (error: any) {
+      Alert.alert(
+        "인증 실패",
+        error.response?.data || "인증번호를 확인해주세요."
+      );
+    }
+  };
+
+  const handleSignup = async () => {
+    if (!email || !code || !nickname || !password || !passwordCheck) {
+      Alert.alert("알림", "모든 항목을 입력해주세요.");
+      return;
+    }
+
+    if (password !== passwordCheck) {
+      Alert.alert("오류", "비밀번호가 일치하지 않습니다.");
+      return;
+    }
+
+    try {
+      const result = await signup({
+        email,
+        password,
+        nickname,
+      });
+
+      Alert.alert("성공", result || "회원가입이 완료되었습니다.", [
+        {
+          text: "확인",
+          onPress: () => router.replace("/"),
+        },
+      ]);
+    } catch (error: any) {
+      Alert.alert(
+        "회원가입 실패",
+        error.response?.data || "회원가입에 실패했습니다."
+      );
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -55,21 +127,27 @@ export default function Signup() {
             />
           </View>
 
-          <Pressable style={styles.codeButton}>
+          <Pressable style={styles.codeButton} onPress={handleSendCode}>
             <Text style={styles.codeButtonText}>인증</Text>
           </Pressable>
         </View>
 
-        <View style={styles.inputWrap}>
-          <Text style={styles.inputIcon}>#</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="인증번호 입력"
-            placeholderTextColor="#B0A090"
-            keyboardType="number-pad"
-            value={code}
-            onChangeText={setCode}
-          />
+        <View style={styles.codeRow}>
+          <View style={[styles.inputWrap, styles.codeInput]}>
+            <Text style={styles.inputIcon}>#</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="인증번호 입력"
+              placeholderTextColor="#B0A090"
+              keyboardType="number-pad"
+              value={code}
+              onChangeText={setCode}
+            />
+          </View>
+
+          <Pressable style={styles.codeButton} onPress={handleVerifyCode}>
+            <Text style={styles.codeButtonText}>확인</Text>
+          </Pressable>
         </View>
 
         <View style={styles.inputWrap}>
@@ -107,7 +185,7 @@ export default function Signup() {
           />
         </View>
 
-        <Pressable style={styles.signupButton}>
+        <Pressable style={styles.signupButton} onPress={handleSignup}>
           <Text style={styles.signupButtonText}>가입하기</Text>
         </Pressable>
 
@@ -174,7 +252,18 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
 
+  codeRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginBottom: 10,
+  },
+
   emailInput: {
+    flex: 1,
+    marginBottom: 0,
+  },
+
+  codeInput: {
     flex: 1,
     marginBottom: 0,
   },

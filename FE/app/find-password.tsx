@@ -12,6 +12,11 @@ import {
   Alert,
 } from "react-native";
 import { router } from "expo-router";
+import {
+  sendPasswordResetCode,
+  verifyPasswordResetCode,
+  resetPassword,
+} from "../src/api/authApi";
 
 export default function FindPasswordScreen() {
   const [email, setEmail] = useState("");
@@ -19,13 +24,69 @@ export default function FindPasswordScreen() {
   const [newPassword, setNewPassword] = useState("");
   const [newPasswordCheck, setNewPasswordCheck] = useState("");
 
-  const handleResetPassword = () => {
+  const handleSendCode = async () => {
+    if (!email) {
+      Alert.alert("알림", "이메일을 입력해주세요.");
+      return;
+    }
+
+    try {
+      const result = await sendPasswordResetCode(email);
+      Alert.alert("성공", result || "인증번호가 발송되었습니다.");
+    } catch (error: any) {
+      Alert.alert(
+        "발송 실패",
+        error.response?.data || "인증번호 발송에 실패했습니다."
+      );
+    }
+  };
+
+  const handleVerifyCode = async () => {
+    if (!email || !code) {
+      Alert.alert("알림", "이메일과 인증번호를 입력해주세요.");
+      return;
+    }
+
+    try {
+      const result = await verifyPasswordResetCode(email, code);
+      Alert.alert("성공", result || "인증번호가 확인되었습니다.");
+    } catch (error: any) {
+      Alert.alert(
+        "인증 실패",
+        error.response?.data || "인증번호를 확인해주세요."
+      );
+    }
+  };
+
+  const handleResetPassword = async () => {
+    if (!email || !newPassword || !newPasswordCheck) {
+      Alert.alert("알림", "필수 정보를 모두 입력해주세요.");
+      return;
+    }
+
     if (newPassword !== newPasswordCheck) {
       Alert.alert("오류", "비밀번호가 일치하지 않습니다.");
       return;
     }
 
-    Alert.alert("비밀번호 변경", "비밀번호 변경 API 연결 예정");
+    try {
+      const result = await resetPassword({
+        email,
+        newPassword,
+      });
+
+      Alert.alert("성공", result || "비밀번호가 변경되었습니다.", [
+        {
+          text: "확인",
+          onPress: () => router.replace("/"),
+        },
+      ]);
+    } catch (error: any) {
+      Alert.alert(
+        "변경 실패",
+        error.response?.data || "비밀번호 변경에 실패했습니다."
+      );
+    }
   };
 
   return (
@@ -67,10 +128,7 @@ export default function FindPasswordScreen() {
             />
           </View>
 
-          <Pressable
-            style={styles.smallButton}
-            onPress={() => Alert.alert("인증", "인증번호 발송 API 연결 예정")}
-          >
+          <Pressable style={styles.smallButton} onPress={handleSendCode}>
             <Text style={styles.smallButtonText}>발송</Text>
           </Pressable>
         </View>
@@ -89,10 +147,7 @@ export default function FindPasswordScreen() {
             />
           </View>
 
-          <Pressable
-            style={styles.smallButton}
-            onPress={() => Alert.alert("인증", "인증번호 확인 API 연결 예정")}
-          >
+          <Pressable style={styles.smallButton} onPress={handleVerifyCode}>
             <Text style={styles.smallButtonText}>확인</Text>
           </Pressable>
         </View>

@@ -9,12 +9,31 @@ import {
   ScrollView,
   StatusBar,
   Image,
+  Alert,
 } from "react-native";
 import { router } from "expo-router";
+import { login } from "../src/api/authApi";
 
 export default function Index() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+
+  const handleLogin = async () => {
+    if (!email || !password) {
+      Alert.alert("알림", "이메일과 비밀번호를 입력해주세요.");
+      return;
+    }
+
+    try {
+      const result = await login({ email, password });
+      Alert.alert("성공", result || "로그인 성공");
+    } catch (error: any) {
+      Alert.alert(
+        "로그인 실패",
+        error.response?.data || "이메일 또는 비밀번호를 확인해주세요."
+      );
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -60,7 +79,7 @@ export default function Index() {
             />
           </View>
 
-          <Pressable style={styles.loginButton}>
+          <Pressable style={styles.loginButton} onPress={handleLogin}>
             <Text style={styles.loginButtonText}>로그인</Text>
           </Pressable>
 
