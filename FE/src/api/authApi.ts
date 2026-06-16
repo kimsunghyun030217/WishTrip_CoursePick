@@ -11,6 +11,17 @@ const authApi = axios.create({
   },
 });
 
+// 이메일 존재 여부 확인
+export const existsEmail = async (email: string) => {
+  const response = await authApi.get("/api/users/exists-email", {
+    params: {
+      email,
+    },
+  });
+
+  return response.data; // true or false
+};
+
 // 이메일 인증번호 발송
 export const sendSignupCode = async (email: string) => {
   const response = await authApi.post("/api/emails/send-code", {
@@ -35,6 +46,9 @@ export const signup = async (data: {
   email: string;
   password: string;
   nickname: string;
+  nationality: string;
+  language: string;
+  birthDate: string;
 }) => {
   const response = await authApi.post("/api/users/signup", data);
 

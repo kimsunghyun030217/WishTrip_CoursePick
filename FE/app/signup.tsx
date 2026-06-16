@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { router } from "expo-router";
 import {
+  existsEmail,
   sendSignupCode,
   verifySignupCode,
   signup,
@@ -51,13 +52,65 @@ export default function Signup() {
   const [password, setPassword] = useState("");
   const [passwordCheck, setPasswordCheck] = useState("");
 
+  const [emailChecked, setEmailChecked] = useState(false);
+  const [emailAvailable, setEmailAvailable] = useState(false);
+  const [timer, setTimer] = useState(0);
+
+  useEffect(() => {
+    if (timer <= 0) return;
+
+    const interval = setInterval(() => {
+      setTimer((prev) => prev - 1);
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [timer]);
+
+  const formatTimer = (seconds: number) => {
+    const min = String(Math.floor(seconds / 60)).padStart(2, "0");
+    const sec = String(seconds % 60).padStart(2, "0");
+    return `${min}:${sec}`;
+  };
+
+  const handleEmailChange = (text: string) => {
+    setEmail(text);
+    setEmailChecked(false);
+    setEmailAvailable(false);
+    setTimer(0);
+  };
+
   const handleSendCode = async () => {
     if (!email) {
       Alert.alert("알림", "이메일을 입력해주세요.");
       return;
     }
+
     try {
+      const exists = await existsEmail(email);
+
+      if (exists) {
+        setEmailChecked(true);
+        setEmailAvailable(false);
+
+        Alert.alert("알림", "이미 가입된 이메일입니다.", [
+          {
+            text: "로그인하기",
+            onPress: () => router.push("/"),
+          },
+          {
+            text: "확인",
+            style: "cancel",
+          },
+        ]);
+        return;
+      }
+
+      setEmailChecked(true);
+      setEmailAvailable(true);
+
       const result = await sendSignupCode(email);
+      setTimer(300);
+
       Alert.alert("성공", result || "인증번호가 발송되었습니다.");
     } catch (error: any) {
       Alert.alert(
@@ -72,8 +125,15 @@ export default function Signup() {
       Alert.alert("알림", "이메일과 인증번호를 입력해주세요.");
       return;
     }
+
+    if (timer <= 0) {
+      Alert.alert("알림", "인증 시간이 만료되었습니다. 인증번호를 다시 발송해주세요.");
+      return;
+    }
+
     try {
       const result = await verifySignupCode(email, code);
+      setTimer(0);
       Alert.alert("성공", result || "인증번호가 확인되었습니다.");
     } catch (error: any) {
       Alert.alert(
@@ -97,10 +157,12 @@ export default function Signup() {
       Alert.alert("알림", "모든 항목을 입력해주세요.");
       return;
     }
+
     if (password !== passwordCheck) {
       Alert.alert("오류", "비밀번호가 일치하지 않습니다.");
       return;
     }
+
     try {
       const result = await signup({
         email,
@@ -110,6 +172,7 @@ export default function Signup() {
         language,
         birthDate,
       });
+
       Alert.alert("성공", result || "회원가입이 완료되었습니다.", [
         {
           text: "확인",
@@ -146,7 +209,6 @@ export default function Signup() {
           <Text style={styles.logoSub}>CoursePick과 여행을 시작해보세요</Text>
         </View>
 
-        {/* 이메일 */}
         <View style={styles.emailRow}>
           <View style={[styles.inputWrap, styles.emailInput]}>
             <Text style={styles.inputIcon}>✉</Text>
@@ -157,15 +219,19 @@ export default function Signup() {
               keyboardType="email-address"
               autoCapitalize="none"
               value={email}
-              onChangeText={setEmail}
+              onChangeText={handleEmailChange}
             />
           </View>
+
           <Pressable style={styles.codeButton} onPress={handleSendCode}>
             <Text style={styles.codeButtonText}>인증</Text>
           </Pressable>
         </View>
 
-        {/* 인증번호 */}
+        {emailChecked && emailAvailable && (
+          <Text style={styles.successText}>사용 가능한 이메일입니다.</Text>
+        )}
+
         <View style={styles.codeRow}>
           <View style={[styles.inputWrap, styles.codeInput]}>
             <Text style={styles.inputIcon}>#</Text>
@@ -178,12 +244,16 @@ export default function Signup() {
               onChangeText={setCode}
             />
           </View>
+
           <Pressable style={styles.codeButton} onPress={handleVerifyCode}>
             <Text style={styles.codeButtonText}>확인</Text>
           </Pressable>
         </View>
 
-        {/* 닉네임 */}
+        {timer > 0 && (
+          <Text style={styles.timerText}>인증번호 남은 시간 {formatTimer(timer)}</Text>
+        )}
+
         <View style={styles.inputWrap}>
           <Text style={styles.inputIcon}>👤</Text>
           <TextInput
@@ -195,7 +265,6 @@ export default function Signup() {
           />
         </View>
 
-        {/* 국적 선택 - CustomSelect */}
         <CustomSelect
           icon="🌍"
           placeholder="국적 선택"
@@ -204,7 +273,6 @@ export default function Signup() {
           onChange={setNationality}
         />
 
-        {/* 언어 선택 - CustomSelect */}
         <CustomSelect
           icon="🗣️"
           placeholder="사용 언어 선택"
@@ -213,10 +281,8 @@ export default function Signup() {
           onChange={setLanguage}
         />
 
-        {/* 생년월일 */}
         <BirthDatePicker value={birthDate} onChange={setBirthDate} />
 
-        {/* 비밀번호 */}
         <View style={styles.inputWrap}>
           <Text style={styles.inputIcon}>🔒</Text>
           <TextInput
@@ -229,7 +295,6 @@ export default function Signup() {
           />
         </View>
 
-        {/* 비밀번호 확인 */}
         <View style={styles.inputWrap}>
           <Text style={styles.inputIcon}>🔒</Text>
           <TextInput
@@ -299,12 +364,12 @@ const styles = StyleSheet.create({
   emailRow: {
     flexDirection: "row",
     gap: 10,
-    marginBottom: 10,
+    marginBottom: 6,
   },
   codeRow: {
     flexDirection: "row",
     gap: 10,
-    marginBottom: 10,
+    marginBottom: 6,
   },
   emailInput: {
     flex: 1,
@@ -348,6 +413,20 @@ const styles = StyleSheet.create({
     color: "#1B3A6B",
     fontSize: 14,
     fontWeight: "800",
+  },
+  successText: {
+    fontSize: 12,
+    color: "#1B8A5A",
+    fontWeight: "700",
+    marginBottom: 10,
+    marginLeft: 4,
+  },
+  timerText: {
+    fontSize: 12,
+    color: "#D35400",
+    fontWeight: "700",
+    marginBottom: 10,
+    marginLeft: 4,
   },
   signupButton: {
     height: 50,

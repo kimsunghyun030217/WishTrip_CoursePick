@@ -1,5 +1,4 @@
-// app/find-password.tsx
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -13,6 +12,7 @@ import {
 } from "react-native";
 import { router } from "expo-router";
 import {
+  existsEmail,
   sendPasswordResetCode,
   verifyPasswordResetCode,
   resetPassword,
@@ -23,6 +23,28 @@ export default function FindPasswordScreen() {
   const [code, setCode] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [newPasswordCheck, setNewPasswordCheck] = useState("");
+  const [timer, setTimer] = useState(0);
+
+  useEffect(() => {
+    if (timer <= 0) return;
+
+    const interval = setInterval(() => {
+      setTimer((prev) => prev - 1);
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [timer]);
+
+  const formatTimer = (seconds: number) => {
+    const min = String(Math.floor(seconds / 60)).padStart(2, "0");
+    const sec = String(seconds % 60).padStart(2, "0");
+    return `${min}:${sec}`;
+  };
+
+  const handleEmailChange = (text: string) => {
+    setEmail(text);
+    setTimer(0);
+  };
 
   const handleSendCode = async () => {
     if (!email) {
@@ -31,7 +53,25 @@ export default function FindPasswordScreen() {
     }
 
     try {
+      const exists = await existsEmail(email);
+
+      if (!exists) {
+        Alert.alert("가입 정보 없음", "가입되지 않은 이메일입니다.", [
+          {
+            text: "회원가입",
+            onPress: () => router.push("/signup"),
+          },
+          {
+            text: "확인",
+            style: "cancel",
+          },
+        ]);
+        return;
+      }
+
       const result = await sendPasswordResetCode(email);
+      setTimer(300);
+
       Alert.alert("성공", result || "인증번호가 발송되었습니다.");
     } catch (error: any) {
       Alert.alert(
@@ -47,8 +87,14 @@ export default function FindPasswordScreen() {
       return;
     }
 
+    if (timer <= 0) {
+      Alert.alert("알림", "인증 시간이 만료되었습니다. 인증번호를 다시 발송해주세요.");
+      return;
+    }
+
     try {
       const result = await verifyPasswordResetCode(email, code);
+      setTimer(0);
       Alert.alert("성공", result || "인증번호가 확인되었습니다.");
     } catch (error: any) {
       Alert.alert(
@@ -122,7 +168,7 @@ export default function FindPasswordScreen() {
               placeholder="이메일 주소"
               placeholderTextColor="#B0A090"
               value={email}
-              onChangeText={setEmail}
+              onChangeText={handleEmailChange}
               keyboardType="email-address"
               autoCapitalize="none"
             />
@@ -151,6 +197,12 @@ export default function FindPasswordScreen() {
             <Text style={styles.smallButtonText}>확인</Text>
           </Pressable>
         </View>
+
+        {timer > 0 && (
+          <Text style={styles.timerText}>
+            인증번호 남은 시간 {formatTimer(timer)}
+          </Text>
+        )}
 
         <Text style={styles.label}>새 비밀번호</Text>
         <View style={styles.inputWrap}>
@@ -195,7 +247,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#FAF6EE",
   },
-
   backgroundImage: {
     position: "absolute",
     top: 0,
@@ -205,37 +256,31 @@ const styles = StyleSheet.create({
     height: 520,
     opacity: 0.78,
   },
-
   overlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(250, 246, 238, 0.28)",
   },
-
   content: {
     paddingHorizontal: 24,
     paddingTop: 440,
     paddingBottom: 40,
   },
-
   logoArea: {
     alignItems: "center",
     marginBottom: 20,
   },
-
   logo: {
     fontSize: 34,
     fontWeight: "900",
     color: "#1B3A6B",
     letterSpacing: -1,
   },
-
   logoSub: {
     fontSize: 14,
     color: "#8B7355",
     fontWeight: "700",
     marginTop: 6,
   },
-
   label: {
     fontSize: 13,
     fontWeight: "800",
@@ -243,19 +288,16 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     marginTop: 4,
   },
-
   row: {
     flexDirection: "row",
     gap: 10,
     alignItems: "center",
     marginBottom: 10,
   },
-
   rowInput: {
     flex: 1,
     marginBottom: 0,
   },
-
   inputWrap: {
     flexDirection: "row",
     alignItems: "center",
@@ -267,18 +309,15 @@ const styles = StyleSheet.create({
     height: 50,
     marginBottom: 10,
   },
-
   inputIcon: {
     fontSize: 16,
     marginRight: 10,
   },
-
   input: {
     flex: 1,
     fontSize: 15,
     color: "#1A1208",
   },
-
   smallButton: {
     width: 76,
     height: 50,
@@ -289,13 +328,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-
   smallButtonText: {
     color: "#1B3A6B",
     fontSize: 14,
     fontWeight: "800",
   },
-
+  timerText: {
+    fontSize: 12,
+    color: "#D35400",
+    fontWeight: "700",
+    marginBottom: 10,
+    marginLeft: 4,
+  },
   resetButton: {
     height: 50,
     backgroundColor: "#1B3A6B",
@@ -304,13 +348,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginTop: 8,
   },
-
   resetButtonText: {
     color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "800",
   },
-
   backText: {
     textAlign: "center",
     marginTop: 18,

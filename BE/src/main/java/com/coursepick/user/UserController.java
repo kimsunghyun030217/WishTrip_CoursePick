@@ -34,4 +34,13 @@ public class UserController {
 
         return ResponseEntity.ok("비밀번호 변경 성공");
     }
+
+    @GetMapping("/exists-email")
+    public ResponseEntity<Boolean> existsEmail(
+            @RequestParam String email) {
+
+        return ResponseEntity.ok(
+                userService.existsEmail(email)
+        );
+    }
 }
