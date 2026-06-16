@@ -1,4 +1,3 @@
-// app/signup.tsx
 import { useState } from "react";
 import {
   View,
@@ -17,11 +16,38 @@ import {
   verifySignupCode,
   signup,
 } from "../src/api/authApi";
+import CustomSelect from "../components/CustomSelect";
+import BirthDatePicker from "../components/BirthDatePicker";
+
+const NATIONALITY_OPTIONS = [
+  { label: "대한민국", value: "KOREA" },
+  { label: "미국", value: "USA" },
+  { label: "일본", value: "JAPAN" },
+  { label: "중국", value: "CHINA" },
+  { label: "대만", value: "TAIWAN" },
+  { label: "베트남", value: "VIETNAM" },
+  { label: "태국", value: "THAILAND" },
+  { label: "프랑스", value: "FRANCE" },
+  { label: "기타", value: "OTHER" },
+];
+
+const LANGUAGE_OPTIONS = [
+  { label: "한국어", value: "KOREAN" },
+  { label: "영어", value: "ENGLISH" },
+  { label: "일본어", value: "JAPANESE" },
+  { label: "중국어", value: "CHINESE" },
+  { label: "베트남어", value: "VIETNAMESE" },
+  { label: "태국어", value: "THAI" },
+  { label: "프랑스어", value: "FRENCH" },
+];
 
 export default function Signup() {
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
   const [nickname, setNickname] = useState("");
+  const [nationality, setNationality] = useState("");
+  const [language, setLanguage] = useState("");
+  const [birthDate, setBirthDate] = useState("");
   const [password, setPassword] = useState("");
   const [passwordCheck, setPasswordCheck] = useState("");
 
@@ -30,7 +56,6 @@ export default function Signup() {
       Alert.alert("알림", "이메일을 입력해주세요.");
       return;
     }
-
     try {
       const result = await sendSignupCode(email);
       Alert.alert("성공", result || "인증번호가 발송되었습니다.");
@@ -47,7 +72,6 @@ export default function Signup() {
       Alert.alert("알림", "이메일과 인증번호를 입력해주세요.");
       return;
     }
-
     try {
       const result = await verifySignupCode(email, code);
       Alert.alert("성공", result || "인증번호가 확인되었습니다.");
@@ -60,23 +84,32 @@ export default function Signup() {
   };
 
   const handleSignup = async () => {
-    if (!email || !code || !nickname || !password || !passwordCheck) {
+    if (
+      !email ||
+      !code ||
+      !nickname ||
+      !nationality ||
+      !language ||
+      !birthDate ||
+      !password ||
+      !passwordCheck
+    ) {
       Alert.alert("알림", "모든 항목을 입력해주세요.");
       return;
     }
-
     if (password !== passwordCheck) {
       Alert.alert("오류", "비밀번호가 일치하지 않습니다.");
       return;
     }
-
     try {
       const result = await signup({
         email,
         password,
         nickname,
+        nationality,
+        language,
+        birthDate,
       });
-
       Alert.alert("성공", result || "회원가입이 완료되었습니다.", [
         {
           text: "확인",
@@ -113,6 +146,7 @@ export default function Signup() {
           <Text style={styles.logoSub}>CoursePick과 여행을 시작해보세요</Text>
         </View>
 
+        {/* 이메일 */}
         <View style={styles.emailRow}>
           <View style={[styles.inputWrap, styles.emailInput]}>
             <Text style={styles.inputIcon}>✉</Text>
@@ -126,12 +160,12 @@ export default function Signup() {
               onChangeText={setEmail}
             />
           </View>
-
           <Pressable style={styles.codeButton} onPress={handleSendCode}>
             <Text style={styles.codeButtonText}>인증</Text>
           </Pressable>
         </View>
 
+        {/* 인증번호 */}
         <View style={styles.codeRow}>
           <View style={[styles.inputWrap, styles.codeInput]}>
             <Text style={styles.inputIcon}>#</Text>
@@ -144,12 +178,12 @@ export default function Signup() {
               onChangeText={setCode}
             />
           </View>
-
           <Pressable style={styles.codeButton} onPress={handleVerifyCode}>
             <Text style={styles.codeButtonText}>확인</Text>
           </Pressable>
         </View>
 
+        {/* 닉네임 */}
         <View style={styles.inputWrap}>
           <Text style={styles.inputIcon}>👤</Text>
           <TextInput
@@ -161,6 +195,28 @@ export default function Signup() {
           />
         </View>
 
+        {/* 국적 선택 - CustomSelect */}
+        <CustomSelect
+          icon="🌍"
+          placeholder="국적 선택"
+          options={NATIONALITY_OPTIONS}
+          value={nationality}
+          onChange={setNationality}
+        />
+
+        {/* 언어 선택 - CustomSelect */}
+        <CustomSelect
+          icon="🗣️"
+          placeholder="사용 언어 선택"
+          options={LANGUAGE_OPTIONS}
+          value={language}
+          onChange={setLanguage}
+        />
+
+        {/* 생년월일 */}
+        <BirthDatePicker value={birthDate} onChange={setBirthDate} />
+
+        {/* 비밀번호 */}
         <View style={styles.inputWrap}>
           <Text style={styles.inputIcon}>🔒</Text>
           <TextInput
@@ -173,6 +229,7 @@ export default function Signup() {
           />
         </View>
 
+        {/* 비밀번호 확인 */}
         <View style={styles.inputWrap}>
           <Text style={styles.inputIcon}>🔒</Text>
           <TextInput
@@ -205,7 +262,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#FAF6EE",
   },
-
   backgroundImage: {
     position: "absolute",
     top: 0,
@@ -215,59 +271,49 @@ const styles = StyleSheet.create({
     height: 520,
     opacity: 0.78,
   },
-
   overlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(250, 246, 238, 0.28)",
   },
-
   content: {
     paddingHorizontal: 24,
     paddingTop: 450,
     paddingBottom: 40,
   },
-
   logoArea: {
     alignItems: "center",
     marginBottom: 18,
   },
-
   logo: {
     fontSize: 34,
     fontWeight: "900",
     color: "#1B3A6B",
     letterSpacing: -1,
   },
-
   logoSub: {
     fontSize: 14,
     color: "#8B7355",
     fontWeight: "700",
     marginTop: 6,
   },
-
   emailRow: {
     flexDirection: "row",
     gap: 10,
     marginBottom: 10,
   },
-
   codeRow: {
     flexDirection: "row",
     gap: 10,
     marginBottom: 10,
   },
-
   emailInput: {
     flex: 1,
     marginBottom: 0,
   },
-
   codeInput: {
     flex: 1,
     marginBottom: 0,
   },
-
   inputWrap: {
     flexDirection: "row",
     alignItems: "center",
@@ -279,18 +325,15 @@ const styles = StyleSheet.create({
     height: 50,
     marginBottom: 10,
   },
-
   inputIcon: {
     fontSize: 16,
     marginRight: 10,
   },
-
   input: {
     flex: 1,
     fontSize: 15,
     color: "#1A1208",
   },
-
   codeButton: {
     width: 76,
     height: 50,
@@ -301,13 +344,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-
   codeButtonText: {
     color: "#1B3A6B",
     fontSize: 14,
     fontWeight: "800",
   },
-
   signupButton: {
     height: 50,
     backgroundColor: "#1B3A6B",
@@ -316,13 +357,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginTop: 4,
   },
-
   signupButtonText: {
     color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "800",
   },
-
   linkRow: {
     flexDirection: "row",
     justifyContent: "center",
@@ -330,13 +369,11 @@ const styles = StyleSheet.create({
     gap: 8,
     marginTop: 16,
   },
-
   linkText: {
     fontSize: 13,
     color: "#6E5B44",
     fontWeight: "600",
   },
-
   linkPrimary: {
     fontSize: 13,
     color: "#1B3A6B",
