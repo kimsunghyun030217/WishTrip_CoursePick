@@ -27,7 +27,8 @@ public class SecurityConfig {
                                 "/api/emails/**",
                                 "/api/users/signup",
                                 "/api/users/login",
-                                "/api/users/password/reset"
+                                "/api/users/password/reset",
+                                "/api/tour/**"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )
